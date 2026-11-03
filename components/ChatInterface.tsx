@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { getGeminiResponse } from "../services/geminiService";
 import type { ChatMessage } from "../types";
 
-type Message = ChatMessage & { sources?: { uri: string; title: string }[] };
+type Message = Omit<ChatMessage, "role"> & { role: "user" | "assistant"; sources?: { uri: string; title: string }[] };
 
 const STORAGE_KEY = "forge.conversation.v1";
 const initialMessage: Message = {
