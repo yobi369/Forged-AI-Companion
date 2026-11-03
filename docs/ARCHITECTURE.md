@@ -15,12 +15,14 @@ React chat UI
 
 ## Local workspace data
 
-- Database: `forge-workspace`, schema version 1.
-- Object store: `conversations`, keyed by an opaque conversation ID.
-- Each record stores a title, ordered messages, and creation/update timestamps.
-- Conversation lists are sorted by most recently updated.
+- Database: `forge-workspace`, schema version 2.
+- Object stores: `conversations` and `memories`, each keyed by an opaque record ID.
+- Conversation records store a title, ordered messages, and creation/update timestamps.
+- Memory records store a user-authored title, content, tags, a manual-capture provenance label, and timestamps.
+- Conversation and memory lists are sorted by most recently updated.
 - Message normalization accepts only user/assistant roles, bounds message size and history length, and filters source links to HTTP(S).
 - The first launch migrates the previous `forge.conversation.v1` localStorage value once the IndexedDB write succeeds.
+- Memories are never silently captured or automatically injected into model prompts. They remain user-managed records until retrieval controls are implemented.
 - Data remains in the browser profile. It is not encrypted, synchronized, or backed up; clearing browser site data can remove it.
 
 ## Trust boundaries
@@ -38,13 +40,13 @@ React chat UI
 - No global rate limiter exists yet. A production public deployment must add a shared limiter before open access.
 - There is no authentication or per-user quota yet. Keep deployments private while the endpoint is unauthenticated.
 - Browser-local IndexedDB persistence is not encrypted storage and does not sync across devices.
-- The current memory graph is illustrative and is not connected to a memory database.
+- Memory retrieval, automatic prompt context assembly, export/import, and cross-device deletion propagation are not implemented.
 - Provider selection is currently fixed to Gemini 2.5 Flash in the server adapter.
 
 ## Planned boundaries
 
 - `providers/`: normalized provider interface, model metadata, retries, timeout and usage accounting.
-- `memory/`: explicit memory lifecycle, retrieval, provenance, and deletion.
+- `memory/`: retrieval, provenance for external facts, retention policy, and controlled prompt context assembly.
 - `auth/`: identity, session lifecycle, authorization, and tenant isolation.
 - `sync/`: encrypted synchronization, conflict handling, export/import, and backup/recovery.
 - `observability/`: privacy-safe metrics, traces, health checks, and alerting.
