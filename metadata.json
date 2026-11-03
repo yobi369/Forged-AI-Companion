@@ -1,0 +1,9 @@
+{
+  "name": "Forge AI Companion",
+  "description": "A high-performance, local-first coding companion dashboard visualizing hierarchical memory, git-aware reasoning, and project-wide intelligence.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
