@@ -14,8 +14,9 @@ export interface Conversation {
 }
 
 const DATABASE_NAME = "forge-workspace";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORE_NAME = "conversations";
+const MEMORY_STORE_NAME = "memories";
 const LEGACY_KEY = "forge.conversation.v1";
 
 function createId(): string {
@@ -39,6 +40,10 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         const store = database.createObjectStore(STORE_NAME, { keyPath: "id" });
         store.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+      if (!database.objectStoreNames.contains(MEMORY_STORE_NAME)) {
+        const memories = database.createObjectStore(MEMORY_STORE_NAME, { keyPath: "id" });
+        memories.createIndex("updatedAt", "updatedAt", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -117,4 +122,46 @@ export async function migrateLegacyConversation(): Promise<void> {
   } catch {
     // Keep the legacy value intact if migration fails so the user can recover it.
   }
+}
+
+export interface UserMemory {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  source: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+async function withMemoryStore<T>(
+  mode: IDBTransactionMode,
+  operation: (store: IDBObjectStore) => IDBRequest<T>,
+): Promise<T> {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(MEMORY_STORE_NAME, mode);
+    const request = operation(transaction.objectStore(MEMORY_STORE_NAME));
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error("Forge memory operation failed."));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Forge memory transaction aborted."));
+    transaction.oncomplete = () => database.close();
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error ?? new Error("Forge memory transaction failed."));
+    };
+  });
+}
+
+export async function listMemories(): Promise<UserMemory[]> {
+  const records = await withMemoryStore("readonly", (store) => store.getAll());
+  return (records as UserMemory[]).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function saveMemory(memory: UserMemory): Promise<void> {
+  await withMemoryStore("readwrite", (store) => store.put(memory));
+}
+
+export async function removeMemory(id: string): Promise<void> {
+  await withMemoryStore("readwrite", (store) => store.delete(id));
 }
