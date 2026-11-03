@@ -10,7 +10,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, toggleSidebar }) => {
   const tabs = [
     { id: "architecture", label: "Overview", icon: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" },
-    { id: "memory", label: "Knowledge Map", icon: "M12 3v18m9-9H3m15.36-6.36-12.72 12.72m0-12.72 12.72 12.72" },
+    { id: "memory", label: "Memory", icon: "M12 3v18m9-9H3m15.36-6.36-12.72 12.72m0-12.72 12.72 12.72" },
     { id: "models", label: "AI Providers", icon: "M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" },
     { id: "roadmap", label: "Roadmap", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2" },
   ];
