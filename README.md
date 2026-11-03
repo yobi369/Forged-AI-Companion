@@ -7,10 +7,11 @@ Forge is being developed as a local-first AI workspace. The product direction co
 ## Current capabilities
 
 - React 19 + TypeScript + Vite application shell.
-- Architecture, memory-map, model and roadmap views.
 - Server-side Gemini chat endpoint at `/api/chat`.
-- Bounded conversation input validation and optional Google Search grounding.
+- Bounded request validation and optional Google Search grounding.
 - Multiple conversations persisted in browser IndexedDB, with create, switch, delete and one-time migration from the original single-conversation localStorage slot.
+- User-controlled memory records: manually create, search, edit, and delete tagged memories in IndexedDB.
+- Memory content is never silently captured or automatically sent to the provider.
 - Automated API and conversation-model tests with build CI.
 
 ## Quick start
@@ -39,9 +40,9 @@ The repository is structured for Vercel: deploy the project with the repository 
 ## Product boundaries
 
 - Chat requests are sent to the server API; the provider key is never shipped to the browser.
-- Conversations are stored in the current browser profile using IndexedDB. They are not encrypted, backed up, or synchronized across devices.
-- The memory graph is a conceptual visualization, not yet a searchable memory store.
+- Conversations and manually saved memories are stored in the current browser profile using IndexedDB. They are not encrypted, backed up, or synchronized across devices.
+- Saved memories are not automatically injected into prompts; memory retrieval and provenance-aware context assembly remain future work.
 - Model cards and runtime telemetry must not be interpreted as live hardware measurements.
-- Authentication, shared rate limiting, per-user quotas, durable memory, sync, backup/recovery, production observability, and secure voice remain outstanding.
+- Authentication, shared rate limiting, per-user quotas, encrypted sync, backup/recovery, production observability, and secure voice remain outstanding.
 
 See [docs/PRODUCT.md](docs/PRODUCT.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [SECURITY.md](SECURITY.md).
