@@ -1,118 +1,247 @@
+import React, { useEffect, useRef, useState } from "react";
+import { getGeminiResponse } from "../services/geminiService";
+import {
+  conversationTitle,
+  createConversation,
+  listConversations,
+  migrateLegacyConversation,
+  normalizeMessages,
+  removeConversation,
+  saveConversation,
+  type Conversation,
+  type StoredMessage,
+} from "../services/conversationStore";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { getGeminiResponse } from '../services/geminiService';
-import { ChatMessage } from '../types';
-
-const SYSTEM_INSTRUCTION = `You are the Forge AI Reasoning Engine. You help developers build robust architectures. Use Google Search grounding when asked for latest tech info. Be extremely technical.`;
+const welcomeMessage: StoredMessage = {
+  role: "assistant",
+  content: "I'm Forge. I can help you reason through a problem, plan work, and explore technical ideas. What are you working on?",
+  timestamp: Date.now(),
+};
 
 export const ChatInterface: React.FC = () => {
-  const [messages, setMessages] = useState<(ChatMessage & { sources?: any[] })[]>([
-    { role: 'assistant', content: 'Forge Reasoning Node active. How can I help with your project architecture?', timestamp: Date.now() }
-  ]);
-  const [input, setInput] = useState('');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<StoredMessage[]>([welcomeMessage]);
+  const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [useSearch, setUseSearch] = useState(false);
+  const [error, setError] = useState("");
+  const [isReady, setIsReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    let cancelled = false;
+    const initialize = async () => {
+      try {
+        await migrateLegacyConversation();
+        let records = await listConversations();
+        if (!records.length) {
+          const first = await createConversation();
+          first.messages = [welcomeMessage];
+          first.title = "Getting started";
+          first.updatedAt = Date.now();
+          await saveConversation(first);
+          records = [first];
+        }
+        if (!cancelled) {
+          setConversations(records);
+          setActiveId(records[0].id);
+          setMessages(normalizeMessages(records[0].messages));
+        }
+      } catch (storageError) {
+        if (!cancelled) setError(storageError instanceof Error ? storageError.message : "Forge could not open local storage.");
+      } finally {
+        if (!cancelled) setIsReady(true);
+      }
+    };
+    void initialize();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const userMsg = { role: 'user' as const, content: input, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setIsTyping(true);
-
-    const result = await getGeminiResponse(input, SYSTEM_INSTRUCTION, useSearch);
-    
-    const assistantMsg = { 
-      role: 'assistant' as const, 
-      content: result.text, 
-      timestamp: Date.now(),
-      sources: result.sources 
+  const persist = async (nextMessages: StoredMessage[]) => {
+    if (!activeId) return;
+    const current = conversations.find((item) => item.id === activeId);
+    if (!current) return;
+    const updated: Conversation = {
+      ...current,
+      messages: nextMessages.slice(-100),
+      title: current.title === "New conversation" || current.title === "Getting started"
+        ? conversationTitle(nextMessages)
+        : current.title,
+      updatedAt: Date.now(),
     };
-    setMessages(prev => [...prev, assistantMsg]);
-    setIsTyping(false);
+    try {
+      await saveConversation(updated);
+      setConversations((items) => [updated, ...items.filter((item) => item.id !== updated.id)].sort((a, b) => b.updatedAt - a.updatedAt));
+    } catch {
+      setError("Could not save this conversation. Check browser storage availability.");
+    }
   };
 
+  const selectConversation = (conversation: Conversation) => {
+    if (isTyping) return;
+    setActiveId(conversation.id);
+    setMessages(normalizeMessages(conversation.messages));
+    setError("");
+  };
+
+  const startConversation = async () => {
+    if (isTyping) return;
+    try {
+      const conversation = await createConversation();
+      conversation.messages = [welcomeMessage];
+      conversation.title = "New conversation";
+      await saveConversation(conversation);
+      setConversations((items) => [conversation, ...items]);
+      setActiveId(conversation.id);
+      setMessages(conversation.messages);
+      setInput("");
+      setError("");
+    } catch {
+      setError("Could not create a conversation in browser storage.");
+    }
+  };
+
+  const deleteConversation = async () => {
+    if (!activeId || isTyping) return;
+    const remaining = conversations.filter((item) => item.id !== activeId);
+    try {
+      await removeConversation(activeId);
+      if (!remaining.length) {
+        const fresh = await createConversation();
+        fresh.messages = [welcomeMessage];
+        fresh.title = "Getting started";
+        await saveConversation(fresh);
+        setConversations([fresh]);
+        setActiveId(fresh.id);
+        setMessages(fresh.messages);
+      } else {
+        setConversations(remaining);
+        setActiveId(remaining[0].id);
+        setMessages(normalizeMessages(remaining[0].messages));
+      }
+      setError("");
+    } catch {
+      setError("Could not delete this conversation.");
+    }
+  };
+
+  const handleSend = async () => {
+    const prompt = input.trim();
+    if (!prompt || isTyping || !activeId || !isReady) return;
+
+    const userMessage: StoredMessage = { role: "user", content: prompt, timestamp: Date.now() };
+    const nextMessages = [...messages, userMessage].slice(-100);
+    setMessages(nextMessages);
+    setInput("");
+    setError("");
+    setIsTyping(true);
+    await persist(nextMessages);
+
+    try {
+      const context = nextMessages.slice(-16).map(({ role, content }) => ({ role, content }));
+      const result = await getGeminiResponse(context, useSearch);
+      const completed = [
+        ...nextMessages,
+        {
+          role: "assistant" as const,
+          content: result.text,
+          timestamp: Date.now(),
+          sources: result.sources,
+        },
+      ].slice(-100);
+      setMessages(completed);
+      await persist(completed);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "The request failed.");
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const activeConversation = conversations.find((item) => item.id === activeId);
+
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#0d0d0d]">
-      <div className="p-4 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Reasoning Agent</span>
-          {useSearch && <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[8px] font-bold uppercase">Search Active</span>}
+    <section className="flex h-full min-h-0 flex-col overflow-hidden bg-[#0d0d0d]" aria-label="Forge conversation">
+      <header className="border-b border-white/10 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-300">Forge workspace</p>
+            <p className="mt-1 text-[10px] text-gray-600">Stored privately in this browser</p>
+          </div>
+          <button type="button" onClick={() => void startConversation()} disabled={!isReady || isTyping}
+            className="rounded-lg bg-orange-600 px-3 py-2 text-xs font-semibold text-white hover:bg-orange-500 disabled:opacity-40">
+            + New
+          </button>
         </div>
-        <button 
-          onClick={() => setUseSearch(!useSearch)}
-          className={`p-1 rounded-md transition-all ${useSearch ? 'text-blue-500 bg-blue-500/10' : 'text-gray-600 hover:text-white'}`}
-          title="Toggle Google Search Grounding"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <div className="mt-3 flex items-center gap-2">
+          <select aria-label="Select conversation" value={activeId ?? ""} disabled={!isReady || isTyping}
+            onChange={(event) => {
+              const selected = conversations.find((item) => item.id === event.target.value);
+              if (selected) selectConversation(selected);
+            }}
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#171717] px-3 py-2 text-xs text-gray-200">
+            {conversations.map((conversation) => (
+              <option key={conversation.id} value={conversation.id}>{conversation.title}</option>
+            ))}
+          </select>
+          <button type="button" onClick={() => void deleteConversation()} disabled={!activeId || isTyping}
+            aria-label="Delete current conversation" title="Delete current conversation"
+            className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-400 hover:border-red-500/40 hover:text-red-300 disabled:opacity-40">
+            Delete
+          </button>
+        </div>
+      </header>
+
+      <div className="flex items-center justify-between border-b border-white/5 px-4 py-2">
+        <p className="truncate text-[10px] text-gray-500">{activeConversation?.title ?? "Loading workspace…"}</p>
+        <button type="button" onClick={() => setUseSearch((value) => !value)} aria-pressed={useSearch}
+          className={`shrink-0 rounded-lg px-2 py-1 text-[10px] transition-colors ${useSearch ? "bg-blue-500/15 text-blue-300" : "bg-white/5 text-gray-400 hover:text-white"}`}>
+          Web grounding {useSearch ? "on" : "off"}
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed ${
-              msg.role === 'user' 
-                ? 'bg-orange-600 text-white shadow-lg' 
-                : 'bg-white/5 border border-white/10 text-gray-300'
-            }`}>
-              {msg.content}
-              {msg.sources && msg.sources.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase">Grounded Sources</p>
-                  <div className="flex flex-wrap gap-2">
-                    {msg.sources.map((s, i) => s.web && (
-                      <a key={i} href={s.web.uri} target="_blank" className="text-[9px] bg-white/5 px-2 py-1 rounded hover:bg-white/10 text-blue-400 truncate max-w-[150px]">
-                        {s.web.title || s.web.uri}
-                      </a>
-                    ))}
-                  </div>
+      <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto p-4" aria-live="polite">
+        {!isReady && <p className="text-xs text-gray-500" role="status">Opening your local workspace…</p>}
+        {messages.map((message, index) => (
+          <article key={`${message.timestamp}-${index}`} className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}>
+            <div className={`max-w-[92%] whitespace-pre-wrap break-words rounded-2xl border p-4 text-sm leading-relaxed ${message.role === "user" ? "border-orange-500/30 bg-orange-600 text-white" : "border-white/10 bg-white/5 text-gray-200"}`}>
+              {message.content}
+              {message.sources?.length ? (
+                <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+                  <p className="text-[10px] font-bold uppercase text-gray-500">Sources</p>
+                  {message.sources.map((source, sourceIndex) => (
+                    <a key={`${source.uri}-${sourceIndex}`} href={source.uri} target="_blank" rel="noopener noreferrer"
+                      className="block truncate text-xs text-blue-300 hover:underline">{source.title}</a>
+                  ))}
                 </div>
-              )}
+              ) : null}
             </div>
-            <span className="text-[10px] text-gray-600 mt-2 font-mono uppercase">
-              {msg.role} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
+            <time className="mt-2 text-[10px] text-gray-600">
+              {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </time>
+          </article>
         ))}
-        {isTyping && (
-          <div className="flex flex-col items-start animate-pulse">
-            <div className="max-w-[85%] rounded-2xl p-4 bg-white/5 border border-white/10 text-gray-500 text-sm">
-              Forge is synthesizing project context...
-            </div>
-          </div>
-        )}
+        {isTyping && <p className="text-xs text-gray-500" role="status">Forge is thinking…</p>}
       </div>
 
-      <div className="p-4 border-t border-white/10 bg-[#0d0d0d]">
-        <div className="relative group">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={useSearch ? "Search documentation and codebase..." : "Ask Forge about your code..."}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-all"
-          />
-          <button 
-            onClick={handleSend}
-            disabled={!input.trim()}
-            className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-orange-500 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
+      {error && <div className="mx-4 mb-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-200" role="alert">{error}</div>}
+
+      <form className="border-t border-white/10 p-4" onSubmit={(event) => { event.preventDefault(); void handleSend(); }}>
+        <label htmlFor="forge-message" className="sr-only">Message Forge</label>
+        <div className="flex gap-2">
+          <input id="forge-message" value={input} onChange={(event) => setInput(event.target.value)}
+            maxLength={6000} placeholder="Ask Forge something…" disabled={!isReady || isTyping}
+            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-orange-500" />
+          <button type="submit" disabled={!input.trim() || isTyping || !isReady}
+            className="rounded-xl bg-orange-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-40">Send</button>
         </div>
-      </div>
-    </div>
+        <p className="mt-2 text-[10px] text-gray-600">Conversations stay in this browser profile; they are not encrypted or synced. Do not enter passwords, API keys, or highly sensitive information.</p>
+      </form>
+    </section>
   );
 };
