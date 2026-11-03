@@ -1,118 +1,156 @@
+import React, { useEffect, useRef, useState } from "react";
+import { getGeminiResponse } from "../services/geminiService";
+import type { ChatMessage } from "../types";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { getGeminiResponse } from '../services/geminiService';
-import { ChatMessage } from '../types';
+type Message = ChatMessage & { sources?: { uri: string; title: string }[] };
 
-const SYSTEM_INSTRUCTION = `You are the Forge AI Reasoning Engine. You help developers build robust architectures. Use Google Search grounding when asked for latest tech info. Be extremely technical.`;
+const STORAGE_KEY = "forge.conversation.v1";
+const initialMessage: Message = {
+  role: "assistant",
+  content: "I'm Forge. I can help you reason through a problem, plan work, and explore technical ideas. What are you working on?",
+  timestamp: Date.now(),
+};
+
+function loadMessages(): Message[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [initialMessage];
+    const parsed: unknown = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [initialMessage];
+    return parsed
+      .filter((item): item is Message =>
+        item && (item.role === "user" || item.role === "assistant") &&
+        typeof item.content === "string" && typeof item.timestamp === "number",
+      )
+      .slice(-50);
+  } catch {
+    return [initialMessage];
+  }
+}
 
 export const ChatInterface: React.FC = () => {
-  const [messages, setMessages] = useState<(ChatMessage & { sources?: any[] })[]>([
-    { role: 'assistant', content: 'Forge Reasoning Node active. How can I help with your project architecture?', timestamp: Date.now() }
-  ]);
-  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>(loadMessages);
+  const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [useSearch, setUseSearch] = useState(false);
+  const [error, setError] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-50)));
+    } catch {
+      setError("Browser storage is unavailable. This conversation may not persist after reload.");
     }
+  }, [messages]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    const prompt = input.trim();
+    if (!prompt || isTyping) return;
 
-    const userMsg = { role: 'user' as const, content: input, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
+    const userMessage: Message = { role: "user", content: prompt, timestamp: Date.now() };
+    const nextMessages = [...messages, userMessage].slice(-50);
+    setMessages(nextMessages);
+    setInput("");
+    setError("");
     setIsTyping(true);
 
-    const result = await getGeminiResponse(input, SYSTEM_INSTRUCTION, useSearch);
-    
-    const assistantMsg = { 
-      role: 'assistant' as const, 
-      content: result.text, 
-      timestamp: Date.now(),
-      sources: result.sources 
-    };
-    setMessages(prev => [...prev, assistantMsg]);
-    setIsTyping(false);
+    try {
+      const context = nextMessages.slice(-16).map(({ role, content }) => ({ role, content }));
+      const result = await getGeminiResponse(context, useSearch);
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: result.text, timestamp: Date.now(), sources: result.sources },
+      ].slice(-50));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "The request failed.");
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#0d0d0d]">
-      <div className="p-4 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Reasoning Agent</span>
-          {useSearch && <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[8px] font-bold uppercase">Search Active</span>}
+    <section className="flex h-full min-h-0 flex-col overflow-hidden bg-[#0d0d0d]" aria-label="Forge conversation">
+      <header className="flex items-center justify-between border-b border-white/10 p-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Forge assistant</p>
+          <p className="mt-1 text-[10px] text-gray-600">Conversation saved in this browser</p>
         </div>
-        <button 
-          onClick={() => setUseSearch(!useSearch)}
-          className={`p-1 rounded-md transition-all ${useSearch ? 'text-blue-500 bg-blue-500/10' : 'text-gray-600 hover:text-white'}`}
-          title="Toggle Google Search Grounding"
+        <button
+          type="button"
+          onClick={() => setUseSearch((value) => !value)}
+          aria-pressed={useSearch}
+          className={`rounded-lg px-3 py-2 text-xs transition-colors ${useSearch ? "bg-blue-500/15 text-blue-300" : "bg-white/5 text-gray-400 hover:text-white"}`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          Web grounding {useSearch ? "on" : "off"}
         </button>
-      </div>
+      </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed ${
-              msg.role === 'user' 
-                ? 'bg-orange-600 text-white shadow-lg' 
-                : 'bg-white/5 border border-white/10 text-gray-300'
-            }`}>
-              {msg.content}
-              {msg.sources && msg.sources.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase">Grounded Sources</p>
-                  <div className="flex flex-wrap gap-2">
-                    {msg.sources.map((s, i) => s.web && (
-                      <a key={i} href={s.web.uri} target="_blank" className="text-[9px] bg-white/5 px-2 py-1 rounded hover:bg-white/10 text-blue-400 truncate max-w-[150px]">
-                        {s.web.title || s.web.uri}
-                      </a>
-                    ))}
-                  </div>
+      <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto p-4" aria-live="polite">
+        {messages.map((message, index) => (
+          <article key={`${message.timestamp}-${index}`} className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}>
+            <div className={`max-w-[92%] whitespace-pre-wrap break-words rounded-2xl border p-4 text-sm leading-relaxed ${message.role === "user" ? "border-orange-500/30 bg-orange-600 text-white" : "border-white/10 bg-white/5 text-gray-200"}`}>
+              {message.content}
+              {message.sources?.length ? (
+                <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+                  <p className="text-[10px] font-bold uppercase text-gray-500">Sources</p>
+                  {message.sources.map((source, sourceIndex) => (
+                    <a
+                      key={`${source.uri}-${sourceIndex}`}
+                      href={source.uri}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block truncate text-xs text-blue-300 hover:underline"
+                    >
+                      {source.title}
+                    </a>
+                  ))}
                 </div>
-              )}
+              ) : null}
             </div>
-            <span className="text-[10px] text-gray-600 mt-2 font-mono uppercase">
-              {msg.role} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
+            <time className="mt-2 text-[10px] text-gray-600">
+              {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </time>
+          </article>
         ))}
-        {isTyping && (
-          <div className="flex flex-col items-start animate-pulse">
-            <div className="max-w-[85%] rounded-2xl p-4 bg-white/5 border border-white/10 text-gray-500 text-sm">
-              Forge is synthesizing project context...
-            </div>
-          </div>
-        )}
+        {isTyping && <p className="text-xs text-gray-500" role="status">Forge is thinking…</p>}
       </div>
 
-      <div className="p-4 border-t border-white/10 bg-[#0d0d0d]">
-        <div className="relative group">
+      {error && (
+        <div className="mx-4 mb-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-200" role="alert">
+          {error}
+        </div>
+      )}
+
+      <form
+        className="border-t border-white/10 p-4"
+        onSubmit={(event) => { event.preventDefault(); void handleSend(); }}
+      >
+        <label htmlFor="forge-message" className="sr-only">Message Forge</label>
+        <div className="flex gap-2">
           <input
-            type="text"
+            id="forge-message"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={useSearch ? "Search documentation and codebase..." : "Ask Forge about your code..."}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-all"
+            onChange={(event) => setInput(event.target.value)}
+            maxLength={6000}
+            placeholder="Ask Forge something…"
+            disabled={isTyping}
+            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition-colors focus:border-orange-500"
           />
-          <button 
-            onClick={handleSend}
-            disabled={!input.trim()}
-            className="absolute right-2 top-1.5 p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-orange-500 transition-colors"
+          <button
+            type="submit"
+            disabled={!input.trim() || isTyping}
+            className="rounded-xl bg-orange-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
+            Send
           </button>
         </div>
-      </div>
-    </div>
+        <p className="mt-2 text-[10px] text-gray-600">Do not enter passwords, API keys, or highly sensitive information.</p>
+      </form>
+    </section>
   );
 };

@@ -1,71 +1,95 @@
+export interface GroundedSource {
+  uri: string;
+  title: string;
+}
 
-import { GoogleGenAI, Modality } from "@google/genai";
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
 
-const API_KEY = process.env.API_KEY || "";
+export interface ChatResult {
+  text: string;
+  sources: GroundedSource[];
+  model?: string;
+}
 
-export const getGeminiResponse = async (prompt: string, systemInstruction: string, useSearch: boolean = false) => {
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+export async function getGeminiResponse(
+  messages: ChatTurn[],
+  useSearch = false,
+): Promise<ChatResult> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 45_000);
+
   try {
-    const config: any = {
-      systemInstruction: systemInstruction,
-      temperature: 0.7,
-    };
-
-    if (useSearch) {
-      config.tools = [{ googleSearch: {} }];
-    }
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: prompt,
-      config: config,
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages, useSearch }),
+      signal: controller.signal,
     });
 
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(
+        typeof payload.error === "string"
+          ? payload.error
+          : `Forge request failed (HTTP ${response.status}).`,
+      );
+    }
+
+    if (typeof payload.text !== "string" || !payload.text.trim()) {
+      throw new Error("Forge received an invalid response from the server.");
+    }
+
     return {
-      text: response.text || "No response generated.",
-      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
+      text: payload.text,
+      sources: Array.isArray(payload.sources) ? payload.sources : [],
+      model: typeof payload.model === "string" ? payload.model : undefined,
     };
   } catch (error) {
-    console.error("Gemini API error:", error);
-    return { text: "Error connecting to reasoning engine.", sources: [] };
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("The request timed out. Please try again.");
+    }
+    throw error instanceof Error ? error : new Error("Unable to contact Forge.");
+  } finally {
+    window.clearTimeout(timeout);
   }
-};
+}
 
-// PCM Audio Utilities for Live API
-export function decode(base64: string) {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
+// PCM helpers are retained for the future voice adapter. They do not open a
+// microphone or establish a provider session by themselves.
+export function decode(base64: string): Uint8Array {
+  const binary = atob(base64);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
 export async function decodeAudioData(
   data: Uint8Array,
-  ctx: AudioContext,
+  context: AudioContext,
   sampleRate: number,
-  numChannels: number,
+  channels: number,
 ): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+  const aligned = data.byteOffset % 2 === 0
+    ? data
+    : new Uint8Array(data);
+  const samples = new Int16Array(aligned.buffer, aligned.byteOffset, Math.floor(aligned.byteLength / 2));
+  const frames = Math.floor(samples.length / channels);
+  const buffer = context.createBuffer(channels, frames, sampleRate);
 
-  for (let channel = 0; channel < numChannels; channel++) {
+  for (let channel = 0; channel < channels; channel += 1) {
     const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    for (let frame = 0; frame < frames; frame += 1) {
+      channelData[frame] = samples[frame * channels + channel] / 32768;
     }
   }
   return buffer;
 }
 
-export function encode(bytes: Uint8Array) {
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
+export function encode(bytes: Uint8Array): string {
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   }
   return btoa(binary);
 }
