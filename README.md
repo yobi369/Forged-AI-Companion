@@ -10,8 +10,8 @@ Forge is being developed as a local-first AI workspace. The product direction co
 - Architecture, memory-map, model and roadmap views.
 - Server-side Gemini chat endpoint at `/api/chat`.
 - Bounded conversation input validation and optional Google Search grounding.
-- Conversation history stored in the current browser profile.
-- Automated request-validation tests and build CI.
+- Multiple conversations persisted in browser IndexedDB, with create, switch, delete and one-time migration from the original single-conversation localStorage slot.
+- Automated API and conversation-model tests with build CI.
 
 ## Quick start
 
@@ -39,9 +39,9 @@ The repository is structured for Vercel: deploy the project with the repository 
 ## Product boundaries
 
 - Chat requests are sent to the server API; the provider key is never shipped to the browser.
-- Conversation history is currently browser-local and is not synchronized across devices.
+- Conversations are stored in the current browser profile using IndexedDB. They are not encrypted, backed up, or synchronized across devices.
 - The memory graph is a conceptual visualization, not yet a searchable memory store.
 - Model cards and runtime telemetry must not be interpreted as live hardware measurements.
-- Voice sessions, authentication, multi-device sync, durable server-side memory, global rate limiting, and production observability remain planned work.
+- Authentication, shared rate limiting, per-user quotas, durable memory, sync, backup/recovery, production observability, and secure voice remain outstanding.
 
 See [docs/PRODUCT.md](docs/PRODUCT.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [SECURITY.md](SECURITY.md).
