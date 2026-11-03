@@ -24,7 +24,7 @@ export function normalizeMessages(value) {
     ...(Array.isArray(item.sources) ? {
       sources: item.sources.filter((source) =>
         source && typeof source.uri === "string" &&
-        /^https?:\\/\\//i.test(source.uri) &&
+        (source.uri.startsWith("https://") || source.uri.startsWith("http://")) &&
         typeof source.title === "string",
       ).slice(0, 10),
     } : {}),
