@@ -21,16 +21,16 @@ Forge is a private AI companion and workbench that helps a person think, build, 
 
 ## Release stages
 
-### Foundation (current work)
-- Secure server-side Gemini request path.
-- Bounded request validation.
-- Browser-local conversation persistence.
-- Honest UI status and baseline CI/tests.
+### Foundation (implemented on the product branch)
+- Secure server-side Gemini request path and bounded request validation.
+- Browser-local multi-conversation workspace using IndexedDB.
+- Create, switch, and delete conversations.
+- One-time migration of the original single-conversation localStorage data.
+- Honest UI status and automated validation/build CI.
 
-### Private alpha
-- First-class conversation list and rename/archive/delete.
-- IndexedDB-backed workspace storage and export/import.
-- Explicit memory capture, review, edit, forget, and retrieval.
+### Private alpha (next)
+- Conversation rename, archive, search, export, and import.
+- Explicit memory capture, review, edit, forget, and retrieval with provenance.
 - Provider configuration abstraction and connection diagnostics.
 - Keyboard accessibility, responsive layout, error recovery, and privacy controls.
 
