@@ -12,7 +12,7 @@ test("conversation title comes from the first user prompt", () => {
 test("conversation title is bounded", () => {
   const title = conversationTitle([{ role: "user", content: "a".repeat(100), timestamp: 1 }]);
   assert.equal(title.length, 46);
-  assert.endsWith(title, "…");
+  assert.ok(title.endsWith("…"));
 });
 
 test("normalization rejects invalid roles, oversized content and invalid timestamps", () => {
