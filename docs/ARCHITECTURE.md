@@ -15,8 +15,10 @@ React chat UI
   -> POST /api/chat + Bearer access token
     -> Supabase Auth /auth/v1/user session verification
     -> request validation (bounded messages and content)
-    -> server-only GEMINI_API_KEY
-    -> Gemini API
+    -> CLOUDFLARE_AI_WORKER_URL (server-side Vercel proxy)
+    -> Cloudflare Worker (re-verifies Supabase session)
+    -> Workers AI binding
+    -> Mistral Small 3.1 24B
     <- text + grounded source references
   <- browser renders response and persists it to IndexedDB
 ```
@@ -54,7 +56,7 @@ React chat UI
 - There is no shared/distributed rate limiter or per-user server-side quota yet. Keep deployments access-controlled until abuse and spend controls are implemented.
 - Browser-local IndexedDB persistence is not encrypted storage and does not sync across devices.
 - Memory retrieval, automatic prompt context assembly, export/import, and cross-device deletion propagation are not implemented.
-- Provider selection is currently fixed to Gemini 2.5 Flash in the server adapter.
+- Provider selection is currently fixed to Cloudflare Workers AI model @cf/mistralai/mistral-small-3.1-24b-instruct in the Worker adapter.
 
 ## Planned boundaries
 
