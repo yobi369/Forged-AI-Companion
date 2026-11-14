@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getGeminiResponse } from "../services/geminiService";
+import { getForgeResponse } from "../services/forgeAIService";
 import {
   conversationTitle,
   createConversation,
@@ -164,7 +164,7 @@ export const ChatInterface: React.FC = () => {
 
     try {
       const context = nextMessages.slice(-16).map(({ role, content }) => ({ role, content }));
-      const result = await getGeminiResponse(context, useSearch);
+      const result = await getForgeResponse(context, useSearch);
       const completed = [
         ...nextMessages,
         {
