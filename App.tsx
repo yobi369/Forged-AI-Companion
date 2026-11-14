@@ -37,7 +37,7 @@ const App: React.FC = () => {
     if (!window.confirm("Import this backup into the current workspace? Existing records will be kept; imported records will be added.")) return;
     try {
       const result = await importWorkspaceBackup(await file.text());
-      setBackupStatus(`Imported ${result.conversations} conversations and ${result.memories} memories. Reload the workspace views to see the restored records.`);
+      setBackupStatus(`Imported ${result.conversations} conversations and ${result.memories} memories. The imported records are now available in your workspace.`);
     } catch (error) {
       setBackupStatus(error instanceof Error ? error.message : "Forge could not import this backup.");
     }
