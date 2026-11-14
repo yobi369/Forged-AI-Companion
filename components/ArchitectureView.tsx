@@ -36,8 +36,9 @@ export const ArchitectureView: React.FC = () => (
     <section className="grid gap-4 md:grid-cols-2">
       <Capability title="Server-side provider access" status="Implemented" description="Gemini requests are made through a server API route. The browser never receives the provider API key." />
       <Capability title="Bounded conversation context" status="Implemented" description="The API rejects unsupported roles, empty messages, oversized turns, and excessive conversation context." />
-      <Capability title="Browser-local conversation history" status="Implemented" description="The current conversation is saved in this browser profile. It is not encrypted, synced, or backed up." />
-      <Capability title="Persistent searchable memory" status="Planned" description="A user-controlled memory store with explicit capture, provenance, editing, retrieval, export, and deletion." />
+      <Capability title="Browser-local conversation history" status="Implemented" description="Conversations are persisted in IndexedDB and can be exported or restored through a versioned plaintext backup. They are not encrypted or synced." />
+      <Capability title="User-managed searchable memory" status="Implemented" description="Create, search, edit, tag, export, import, and delete memory records. Memories are not silently captured or automatically injected into AI prompts." />
+      <Capability title="Workspace backup and restore" status="Implemented" description="Export conversations and saved memories to a validated JSON archive, then add them to another browser workspace without overwriting existing records." />
       <Capability title="Local model runtimes" status="Planned" description="Optional Ollama and llama.cpp adapters with real health checks and capability discovery." />
       <Capability title="Project and Git context" status="Planned" description="Permissioned repository indexing with source citations, incremental updates, and explicit scope controls." />
     </section>

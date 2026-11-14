@@ -1,9 +1,11 @@
 {
   "name": "Forge AI Companion",
-  "description": "A high-performance, local-first coding companion dashboard visualizing hierarchical memory, git-aware reasoning, and project-wide intelligence.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ],
-  "majorCapabilities": []
+  "description": "A local-first AI workspace with server-side Gemini chat, user-managed browser memory, and portable conversation backups. Project indexing and local inference are planned.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "Server-side Gemini chat",
+    "Browser-local conversations",
+    "User-managed searchable memory",
+    "Versioned workspace backup and restore"
+  ]
 }

@@ -6,7 +6,7 @@ Forge is being developed as a local-first AI workspace. The product direction co
 
 ## Current capabilities
 
-- React 19 + TypeScript + Vite application shell.
+- React 19 + TypeScript + Vite application shell with Tailwind CSS compiled into production assets (no runtime Tailwind CDN).
 - Server-side Gemini chat endpoint at `/api/chat`.
 - Bounded request validation and optional Google Search grounding.
 - Multiple conversations persisted in browser IndexedDB, with create, switch, delete and one-time migration from the original single-conversation localStorage slot.
