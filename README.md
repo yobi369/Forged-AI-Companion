@@ -7,10 +7,10 @@ Forge is being developed as a local-first AI workspace. The product direction co
 ## Current capabilities
 
 - React 19 + TypeScript + Vite application shell with Tailwind CSS compiled into production assets (no runtime Tailwind CDN).
-- Server-side Gemini chat endpoint at `/api/chat`, protected by server-side Supabase session verification.
+- Server-side Groq chat endpoint at `/api/chat`, protected by server-side Supabase session verification.
 - Supabase email/password registration, sign-in, email confirmation, password reset, and password update flows.
 - Browser-local IndexedDB databases namespaced by authenticated account; separate accounts on the same browser do not share conversation or memory records.
-- Bounded request validation and optional Google Search grounding.
+- Bounded request validation and optional Groq browser-search grounding.
 - Multiple conversations persisted in browser IndexedDB, with create, switch, delete and one-time migration from the original single-conversation localStorage slot.
 - User-controlled memory records: manually create, search, edit, and delete tagged memories in IndexedDB.
 - Versioned JSON workspace backups for conversations and memories, with validated additive restore and collision-safe record IDs.
@@ -24,7 +24,7 @@ Use **Export backup** to download a versioned JSON archive of conversations and 
 
 ## Private alpha authentication setup
 
-Configure the Supabase project URL and publishable key in the frontend environment as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Configure the same project URL and publishable key on the server as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, plus `GEMINI_API_KEY`. Publishable keys are designed for browser use; never place a Supabase secret/service-role key or Gemini key in a `VITE_` variable. Configure the Supabase Auth site URL and redirect allowlist for your deployed Forge domain. Email confirmation and password recovery depend on the Auth email delivery configuration.
+Configure the Supabase project URL and publishable key in the frontend environment as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Configure the same project URL and publishable key on the server as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, plus `GROQ_API_KEY`. Publishable keys are designed for browser use; never place a Supabase secret/service-role key or Groq key in a `VITE_` variable. Configure the Supabase Auth site URL and redirect allowlist for your deployed Forge domain. Email confirmation and password recovery depend on the Auth email delivery configuration.
 
 For local development, copy `.env.example` to `.env.local` and fill all five values. Until these values are configured, Forge intentionally remains behind the setup screen and the AI endpoint rejects requests.
 
@@ -38,7 +38,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Set `GEMINI_API_KEY` in the server environment. Never use a `VITE_` prefix for provider secrets. The Vite development server alone does not execute Vercel API routes; use the Vercel development runtime (`vercel dev`) or deploy to Vercel to exercise `/api/chat`.
+Set `GROQ_API_KEY` in the server environment. Create a key in the [Groq Console](https://console.groq.com/keys). The optional Web grounding toggle uses Groq's built-in browser search with the supported GPT-OSS model. Never use a `VITE_` prefix for provider secrets. The Vite development server alone does not execute Vercel API routes; use the Vercel development runtime (`vercel dev`) or deploy to Vercel to exercise `/api/chat`.
 
 ## Scripts
 
@@ -49,7 +49,7 @@ Set `GEMINI_API_KEY` in the server environment. Never use a `VITE_` prefix for p
 
 ## Deployment
 
-The repository is structured for Vercel: deploy the project with the repository root as the root directory and configure `GEMINI_API_KEY` as a server-side environment variable for Preview and Production as appropriate. Redeploy after changing environment variables.
+The repository is structured for Vercel: deploy the project with the repository root as the root directory and configure `GROQ_API_KEY` as a server-side environment variable for Preview and Production as appropriate. Redeploy after changing environment variables.
 
 ## Product boundaries
 
