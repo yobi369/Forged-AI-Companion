@@ -29,11 +29,12 @@ Forge is a private AI companion and workbench that helps a person think, build, 
 - Manual-only capture; no silent memory collection or automatic prompt injection.
 - Honest UI status and automated validation/build CI.
 
-### Private alpha (next)
-- Conversation rename, archive, search, export, and import.
-- Memory export/import, provenance for imported or externally sourced facts, and retrieval controls.
-- Provider configuration abstraction and connection diagnostics.
-- Keyboard accessibility, responsive layout, error recovery, and privacy controls.
+### Private alpha (in progress)
+- Versioned JSON export/import for conversations and manually saved memories (implemented on the data-portability branch).
+- Import validation, bounded archive size and record counts, HTTP(S)-only source links, and collision-safe additive restore.
+- Conversation rename, archive, search, and per-record export remain outstanding.
+- Provenance for externally sourced facts, retrieval controls, provider configuration abstraction, and connection diagnostics remain outstanding.
+- Keyboard accessibility, responsive layout, error recovery, and privacy controls require a dedicated review.
 
 ### Public beta
 - Authentication and account recovery.
