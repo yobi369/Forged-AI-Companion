@@ -6,11 +6,11 @@ Report suspected vulnerabilities privately to the repository owner. Do not publi
 
 ## Current safeguards
 
-- Gemini credentials are accessed only by the server route through `GEMINI_API_KEY`.
+- Groq credentials are accessed only by the server route through `GROQ_API_KEY`.
 - Chat payloads are bounded by message count, per-message size, and total context size.
 - Client-supplied system/developer roles are rejected.
 - API responses disable caching and set a basic content-type protection header.
-- The AI endpoint requires a bearer access token and verifies it with Supabase Auth before calling Gemini.
+- The AI endpoint requires a bearer access token and verifies it with Supabase Auth before calling Groq.
 - Supabase publishable keys are used in the browser; secret/service-role keys are not required by this implementation.
 - Local IndexedDB data is isolated by authenticated user ID within the browser.
 - Provider errors do not expose prompts, response bodies, or credentials.
