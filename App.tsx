@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [backupStatus, setBackupStatus] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -29,7 +30,9 @@ const App: React.FC = () => {
       return;
     }
     let active = true;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+      if (event === "SIGNED_OUT") setRecoveryMode(false);
       setWorkspaceOwner(session?.user.id ?? null);
       setUser(session?.user ?? null);
       setAuthReady(true);
@@ -52,6 +55,7 @@ const App: React.FC = () => {
   }, []);
 
   if (!supabase) return <AuthScreen />;
+  if (recoveryMode) return <AuthScreen recoveryMode />;
   if (!authReady) {
     return <main className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-sm text-gray-400">Securing your Forge workspace…</main>;
   }
