@@ -1,4 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { AuthScreen } from "./components/AuthScreen";
+import { supabase } from "./services/supabaseClient";
+import { setWorkspaceOwner } from "./services/conversationStore";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { ArchitectureView } from "./components/ArchitectureView";
@@ -16,6 +20,46 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>("architecture");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [backupStatus, setBackupStatus] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthReady(true);
+      return;
+    }
+    let active = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+      if (event === "SIGNED_OUT") setRecoveryMode(false);
+      setWorkspaceOwner(session?.user.id ?? null);
+      setUser(session?.user ?? null);
+      setAuthReady(true);
+    });
+    void supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!active) return;
+      if (error) {
+        setBackupStatus("Could not restore your sign-in session. Please sign in again.");
+      }
+      setWorkspaceOwner(session?.user.id ?? null);
+      setUser(session?.user ?? null);
+      setAuthReady(true);
+    }).catch(() => {
+      if (active) setAuthReady(true);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  if (!supabase) return <AuthScreen />;
+  if (recoveryMode) return <AuthScreen recoveryMode />;
+  if (!authReady) {
+    return <main className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-sm text-gray-400">Securing your Forge workspace…</main>;
+  }
+  if (!user) return <AuthScreen />;
 
   const handleExport = async () => {
     try {
@@ -44,7 +88,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#0a0a0a] text-[#e5e5e5]">
+    <div key={user.id} className="flex h-screen w-full overflow-hidden bg-[#0a0a0a] text-[#e5e5e5]">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -59,7 +103,7 @@ const App: React.FC = () => {
           <div className="mx-auto flex h-full max-w-7xl flex-col">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Local workspace controls</p>
+                <div><p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Private workspace · {user.email}</p><button type="button" onClick={() => void supabase.auth.signOut()} className="mt-1 text-[11px] text-gray-500 hover:text-orange-300">Sign out</button></div>
                 {backupStatus && <p className="mt-1 max-w-2xl text-xs text-gray-400" role="status">{backupStatus}</p>}
               </div>
               <div className="flex flex-wrap gap-2">

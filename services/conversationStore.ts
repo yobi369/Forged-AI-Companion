@@ -14,6 +14,16 @@ export interface Conversation {
 }
 
 const DATABASE_NAME = "forge-workspace";
+let activeWorkspaceOwner: string | null = null;
+
+/** Switch local IndexedDB namespaces when the authenticated account changes. */
+export function setWorkspaceOwner(ownerId: string | null): void {
+  activeWorkspaceOwner = ownerId && /^[0-9a-f-]{36}$/i.test(ownerId) ? ownerId : null;
+}
+
+function workspaceDatabaseName(): string {
+  return activeWorkspaceOwner ? `${DATABASE_NAME}:user:${activeWorkspaceOwner}` : DATABASE_NAME;
+}
 const DATABASE_VERSION = 2;
 const STORE_NAME = "conversations";
 const MEMORY_STORE_NAME = "memories";
@@ -34,7 +44,7 @@ function openDatabase(): Promise<IDBDatabase> {
       reject(new Error("IndexedDB is unavailable in this browser."));
       return;
     }
-    const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+    const request = indexedDB.open(workspaceDatabaseName(), DATABASE_VERSION);
     request.onupgradeneeded = () => {
       const database = request.result;
       if (!database.objectStoreNames.contains(STORE_NAME)) {
