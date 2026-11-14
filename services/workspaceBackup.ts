@@ -1,7 +1,7 @@
 import {
   createWorkspaceBackup,
   parseWorkspaceBackup,
-} from "./workspaceBackup.mjs";
+} from "./workspaceBackupFormat.mjs";
 import {
   listConversations,
   listMemories,
