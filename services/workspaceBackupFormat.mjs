@@ -1,7 +1,7 @@
 export const BACKUP_FORMAT = "forge-workspace-backup";
 export const BACKUP_VERSION = 1;
 
-const MAX_FILE_CHARS = 5 * 1024 * 1024;
+const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
 const MAX_CONVERSATIONS = 500;
 const MAX_MEMORIES = 2_000;
 const MAX_MESSAGES = 100;
@@ -90,7 +90,7 @@ function normalizeMemory(value) {
  * @param {string} raw
  */
 export function parseWorkspaceBackup(raw) {
-  if (typeof raw !== "string" || raw.length > MAX_FILE_CHARS) {
+  if (typeof raw !== "string" || new TextEncoder().encode(raw).byteLength > MAX_BACKUP_BYTES) {
     throw new Error("Backup file is too large. The maximum supported size is 5 MB.");
   }
   let parsed;
@@ -122,11 +122,15 @@ export function parseWorkspaceBackup(raw) {
  * @param {{conversations: unknown[], memories: unknown[]}} workspace
  */
 export function createWorkspaceBackup(workspace) {
-  return JSON.stringify({
+  const backup = JSON.stringify({
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     conversations: workspace.conversations,
     memories: workspace.memories,
   }, null, 2);
+  if (new TextEncoder().encode(backup).byteLength > MAX_BACKUP_BYTES) {
+    throw new Error("This workspace exceeds the 5 MB backup limit. Remove older records or export a smaller workspace.");
+  }
+  return backup;
 }
