@@ -66,3 +66,19 @@ test("rejects duplicate IDs inside each collection", () => {
   duplicate.conversations.push({ ...duplicate.conversations[0] });
   assert.throws(() => parseWorkspaceBackup(JSON.stringify({ format: "forge-workspace-backup", version: 1, ...duplicate })), /duplicate/);
 });
+
+test("enforces the backup byte limit for import and export", () => {
+  assert.throws(() => parseWorkspaceBackup(" ".repeat(5 * 1024 * 1024 + 1)), /5 MB/);
+  assert.throws(() => createWorkspaceBackup({
+    conversations: [],
+    memories: [{
+      id: "large-memory",
+      title: "Large",
+      content: "x".repeat(5 * 1024 * 1024),
+      tags: [],
+      source: "manual",
+      createdAt: 1,
+      updatedAt: 1,
+    }],
+  }), /5 MB/);
+});
