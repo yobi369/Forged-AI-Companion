@@ -10,11 +10,14 @@ Report suspected vulnerabilities privately to the repository owner. Do not publi
 - Chat payloads are bounded by message count, per-message size, and total context size.
 - Client-supplied system/developer roles are rejected.
 - API responses disable caching and set a basic content-type protection header.
+- The AI endpoint requires a bearer access token and verifies it with Supabase Auth before calling Gemini.
+- Supabase publishable keys are used in the browser; secret/service-role keys are not required by this implementation.
+- Local IndexedDB data is isolated by authenticated user ID within the browser.
 - Provider errors do not expose prompts, response bodies, or credentials.
 
 ## Important deployment warning
 
-The current chat endpoint has no authentication, account authorization, shared rate limiting, or durable abuse controls. Do not expose an unrestricted public deployment or add paid provider credentials to a public endpoint until these controls are implemented. Configure spending limits with the provider and keep preview deployments access-controlled.
+The chat endpoint now requires an authenticated Supabase session. However, it still has no shared/distributed rate limiting, per-user server-side quotas, or durable abuse controls. Do not expose an unrestricted public deployment or add paid provider credentials until these controls are implemented and independently reviewed. Configure spending limits with the provider and keep preview deployments access-controlled.
 
 ## Secret handling
 
