@@ -15,9 +15,9 @@ React chat UI
   -> POST /api/chat + Bearer access token
     -> Supabase Auth /auth/v1/user session verification
     -> request validation (bounded messages and content)
-    -> server-only GEMINI_API_KEY
-    -> Gemini API
-    <- text + grounded source references
+    -> server-only GROQ_API_KEY
+    -> Groq Chat Completions API
+    <- text (with search citations included in the generated answer when browser search is enabled)
   <- browser renders response and persists it to IndexedDB
 ```
 
@@ -54,7 +54,7 @@ React chat UI
 - There is no shared/distributed rate limiter or per-user server-side quota yet. Keep deployments access-controlled until abuse and spend controls are implemented.
 - Browser-local IndexedDB persistence is not encrypted storage and does not sync across devices.
 - Memory retrieval, automatic prompt context assembly, export/import, and cross-device deletion propagation are not implemented.
-- Provider selection is currently fixed to Gemini 2.5 Flash in the server adapter.
+- Provider selection is currently fixed to OpenAI GPT-OSS 20B in the server adapter.
 
 ## Planned boundaries
 
