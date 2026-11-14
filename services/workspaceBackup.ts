@@ -27,10 +27,11 @@ export async function downloadWorkspaceBackup(): Promise<void> {
   anchor.href = url;
   anchor.download = `forge-workspace-${new Date().toISOString().slice(0, 10)}.json`;
   anchor.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
 }
 
 export async function importWorkspaceBackup(raw: string): Promise<{ conversations: number; memories: number }> {
+  // Parse and validate the complete archive before the first IndexedDB write.
   const imported = parseWorkspaceBackup(raw);
   const [existingConversations, existingMemories] = await Promise.all([listConversations(), listMemories()]);
   const conversationIds = new Set(existingConversations.map((item) => item.id));
@@ -46,5 +47,7 @@ export async function importWorkspaceBackup(raw: string): Promise<{ conversation
     memoryIds.add(id);
     await saveMemory({ ...record, id, source: record.source || "Imported backup" });
   }
+
+  window.dispatchEvent(new Event("forge:workspace-imported"));
   return { conversations: imported.conversations.length, memories: imported.memories.length };
 }
