@@ -51,6 +51,12 @@ const App: React.FC = () => {
     };
   }, []);
 
+  if (!supabase) return <AuthScreen />;
+  if (!authReady) {
+    return <main className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-sm text-gray-400">Securing your Forge workspace…</main>;
+  }
+  if (!user) return <AuthScreen />;
+
   const handleExport = async () => {
     try {
       await downloadWorkspaceBackup();
@@ -78,7 +84,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#0a0a0a] text-[#e5e5e5]">
+    <div key={user.id} className="flex h-screen w-full overflow-hidden bg-[#0a0a0a] text-[#e5e5e5]">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
