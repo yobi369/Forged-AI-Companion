@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorkspaceBackup, parseWorkspaceBackup } from "../services/workspaceBackup.mjs";
+import { createWorkspaceBackup, parseWorkspaceBackup } from "../services/workspaceBackupFormat.mjs";
 
 const sample = {
   conversations: [{
