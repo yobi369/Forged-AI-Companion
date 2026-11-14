@@ -22,7 +22,7 @@ Forge is a private AI companion and workbench that helps a person think, build, 
 ## Release stages
 
 ### Foundation (implemented on the product branch)
-- Secure server-side Gemini request path and bounded request validation.
+- Secure server-side Cloudflare Workers AI request path with Supabase session verification and bounded request validation.
 - Browser-local multi-conversation workspace using IndexedDB.
 - Create, switch, and delete conversations, with legacy data migration.
 - User-controlled IndexedDB memory manager: create, search, edit, tag, and delete.
