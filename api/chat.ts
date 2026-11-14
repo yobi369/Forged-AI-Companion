@@ -51,7 +51,7 @@ export default async function handler(req: Request, res: Response) {
     return res.status(401).json({ error: "Sign in to use Forge AI.", code: "AUTH_REQUIRED" });
   }
 
-  let identity: Response;
+  let identity: globalThis.Response;
   try {
     identity = await fetch(`${supabaseUrl}/auth/v1/user`, {
       method: "GET",
