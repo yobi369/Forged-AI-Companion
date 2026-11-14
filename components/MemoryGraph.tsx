@@ -32,6 +32,16 @@ export const MemoryGraph: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    const refreshMemories = () => {
+      listMemories()
+        .then(setMemories)
+        .catch(() => setError("Could not refresh imported memories."));
+    };
+    window.addEventListener("forge:workspace-imported", refreshMemories);
+    return () => window.removeEventListener("forge:workspace-imported", refreshMemories);
+  }, []);
+
   const visibleMemories = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return memories;
