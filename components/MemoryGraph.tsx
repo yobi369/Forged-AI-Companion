@@ -88,7 +88,7 @@ export const MemoryGraph: React.FC = () => {
       id: existing?.id ?? makeId(),
       title: cleanTitle,
       content: cleanContent,
-      tags: [...new Set(tags.split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean))].slice(0, 8),
+      tags: [...new Set<string>(tags.split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean))].slice(0, 8),
       source: "Manually saved by you",
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
