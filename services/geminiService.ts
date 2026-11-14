@@ -1,3 +1,5 @@
+import { supabase } from "./supabaseClient";
+
 export interface GroundedSource {
   uri: string;
   title: string;
@@ -18,13 +20,24 @@ export async function getGeminiResponse(
   messages: ChatTurn[],
   useSearch = false,
 ): Promise<ChatResult> {
+  if (!supabase) {
+    throw new Error("Authentication is not configured for this Forge deployment.");
+  }
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session?.access_token) {
+    throw new Error("Your session has expired. Sign in again to continue.");
+  }
+
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 45_000);
 
   try {
     const response = await fetch("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({ messages, useSearch }),
       signal: controller.signal,
     });
