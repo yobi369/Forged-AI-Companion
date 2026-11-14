@@ -12,7 +12,10 @@ import {
 function uniqueId(existing: Set<string>, prefix: string): string {
   let id = "";
   do {
-    id = `${prefix}-${crypto.randomUUID()}`;
+    const randomId = typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    id = `${prefix}-${randomId}`;
   } while (existing.has(id));
   existing.add(id);
   return id;
