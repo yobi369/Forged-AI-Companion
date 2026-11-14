@@ -62,6 +62,26 @@ export const ChatInterface: React.FC = () => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const refreshWorkspace = async () => {
+      try {
+        const records = await listConversations();
+        if (cancelled) return;
+        setConversations(records);
+        const active = records.find((item) => item.id === activeId);
+        if (active) setMessages(normalizeMessages(active.messages));
+      } catch {
+        if (!cancelled) setError("Could not refresh imported conversations.");
+      }
+    };
+    window.addEventListener("forge:workspace-imported", refreshWorkspace);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("forge:workspace-imported", refreshWorkspace);
+    };
+  }, [activeId]);
+
   const persist = async (nextMessages: StoredMessage[]) => {
     if (!activeId) return;
     const current = conversations.find((item) => item.id === activeId);

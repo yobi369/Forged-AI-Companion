@@ -35,7 +35,7 @@ export default async function handler(req: Request, res: Response) {
   }
 
   const validation = validateChatPayload(req.body);
-  if (!validation.ok) {
+  if ("error" in validation) {
     return res.status(400).json({ error: validation.error });
   }
 

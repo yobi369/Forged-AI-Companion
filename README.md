@@ -11,8 +11,14 @@ Forge is being developed as a local-first AI workspace. The product direction co
 - Bounded request validation and optional Google Search grounding.
 - Multiple conversations persisted in browser IndexedDB, with create, switch, delete and one-time migration from the original single-conversation localStorage slot.
 - User-controlled memory records: manually create, search, edit, and delete tagged memories in IndexedDB.
+- Versioned JSON workspace backups for conversations and memories, with validated additive restore and collision-safe record IDs.
+- Backup import validation, size and record limits, and HTTP(S)-only source references.
 - Memory content is never silently captured or automatically sent to the provider.
 - Automated API and conversation-model tests with build CI.
+
+## Private alpha data portability
+
+Use **Export backup** to download a versioned JSON archive of conversations and saved memories. Use **Import backup** to add a validated archive to the current browser workspace; existing records are preserved. Backups are plaintext and may contain sensitive information, so store them privately. See [data portability details](docs/DATA_PORTABILITY.md).
 
 ## Quick start
 
@@ -43,6 +49,6 @@ The repository is structured for Vercel: deploy the project with the repository 
 - Conversations and manually saved memories are stored in the current browser profile using IndexedDB. They are not encrypted, backed up, or synchronized across devices.
 - Saved memories are not automatically injected into prompts; memory retrieval and provenance-aware context assembly remain future work.
 - Model cards and runtime telemetry must not be interpreted as live hardware measurements.
-- Authentication, shared rate limiting, per-user quotas, encrypted sync, backup/recovery, production observability, and secure voice remain outstanding.
+- Authentication, shared rate limiting, per-user quotas, encrypted sync, automated backups, production observability, and secure voice remain outstanding.
 
 See [docs/PRODUCT.md](docs/PRODUCT.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [SECURITY.md](SECURITY.md).

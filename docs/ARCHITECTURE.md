@@ -23,7 +23,8 @@ React chat UI
 - Message normalization accepts only user/assistant roles, bounds message size and history length, and filters source links to HTTP(S).
 - The first launch migrates the previous `forge.conversation.v1` localStorage value once the IndexedDB write succeeds.
 - Memories are never silently captured or automatically injected into model prompts. They remain user-managed records until retrieval controls are implemented.
-- Data remains in the browser profile. It is not encrypted, synchronized, or backed up; clearing browser site data can remove it.
+- Data remains in the browser profile. It is not encrypted or synchronized; clearing browser site data can remove it.
+- A user-initiated versioned JSON backup can export conversations and memories. Import validates the full archive before writing, adds records without overwriting collisions, and refreshes open workspace views. Backups are plaintext; an IndexedDB failure during restore can leave a partial import.
 
 ## Trust boundaries
 
