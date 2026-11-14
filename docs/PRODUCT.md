@@ -30,6 +30,9 @@ Forge is a private AI companion and workbench that helps a person think, build, 
 - Honest UI status and automated validation/build CI.
 
 ### Private alpha (in progress)
+- Supabase email/password registration and sign-in, email confirmation, password reset, and password update.
+- Server-side Supabase token verification on the AI endpoint; unauthenticated provider requests are rejected.
+- Separate browser-local IndexedDB namespaces per authenticated account; legacy guest data remains separate.
 - Versioned JSON export/import for conversations and manually saved memories (implemented on the data-portability branch).
 - Import validation, bounded archive size and record counts, HTTP(S)-only source links, and collision-safe additive restore.
 - Conversation rename, archive, search, and per-record export remain outstanding.
@@ -37,7 +40,7 @@ Forge is a private AI companion and workbench that helps a person think, build, 
 - Keyboard accessibility, responsive layout, error recovery, and privacy controls require a dedicated review.
 
 ### Public beta
-- Authentication and account recovery.
+- Shared/distributed rate limiting, per-user server-side quotas, and account abuse controls.
 - Encrypted server-side sync with per-user authorization.
 - Durable memory retrieval with provenance and deletion propagation.
 - Usage limits, abuse protection, audit events, monitoring, backups, and support workflows.
