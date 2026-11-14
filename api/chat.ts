@@ -23,6 +23,7 @@ const SYSTEM_INSTRUCTION = [
 export default async function handler(req: Request, res: Response) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Vary", "Authorization");
 
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -32,6 +33,41 @@ export default async function handler(req: Request, res: Response) {
   const length = Number(req.headers["content-length"] || 0);
   if (Number.isFinite(length) && length > 32_000) {
     return res.status(413).json({ error: "Request is too large." });
+  }
+
+  const authorization = req.headers.authorization;
+  const bearer = typeof authorization === "string" ? authorization : "";
+  const token = bearer.match(/^Bearer\\s+([A-Za-z0-9._~-]+)$/i)?.[1];
+  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\\/$/, "");
+  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !publishableKey) {
+    return res.status(503).json({
+      error: "Authentication is not configured. Forge AI requests are temporarily unavailable.",
+      code: "AUTH_NOT_CONFIGURED",
+    });
+  }
+  if (!token) {
+    return res.status(401).json({ error: "Sign in to use Forge AI.", code: "AUTH_REQUIRED" });
+  }
+
+  let identity: Response;
+  try {
+    identity = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      method: "GET",
+      headers: {
+        apikey: publishableKey,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    return res.status(503).json({ error: "Authentication service is temporarily unavailable." });
+  }
+  if (identity.status === 401 || identity.status === 403) {
+    return res.status(401).json({ error: "Your session is invalid or expired. Sign in again.", code: "SESSION_INVALID" });
+  }
+  if (!identity.ok) {
+    return res.status(503).json({ error: "Forge could not verify your session. Try again shortly." });
   }
 
   const validation = validateChatPayload(req.body);
