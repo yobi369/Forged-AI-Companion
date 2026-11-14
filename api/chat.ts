@@ -37,8 +37,8 @@ export default async function handler(req: Request, res: Response) {
 
   const authorization = req.headers.authorization;
   const bearer = typeof authorization === "string" ? authorization : "";
-  const token = bearer.match(/^Bearer\\s+([A-Za-z0-9._~-]+)$/i)?.[1];
-  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\\/$/, "");
+  const token = bearer.match(/^Bearer\s+([A-Za-z0-9._~-]+)$/i)?.[1];
+  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !publishableKey) {
