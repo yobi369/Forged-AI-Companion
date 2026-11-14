@@ -6,18 +6,18 @@ Report suspected vulnerabilities privately to the repository owner. Do not publi
 
 ## Current safeguards
 
-- Gemini credentials are accessed only by the server route through `GEMINI_API_KEY`.
+- No third-party provider API key is required. Inference runs through a server-side Cloudflare Workers AI binding; the browser receives no provider credential.
 - Chat payloads are bounded by message count, per-message size, and total context size.
 - Client-supplied system/developer roles are rejected.
 - API responses disable caching and set a basic content-type protection header.
-- The AI endpoint requires a bearer access token and verifies it with Supabase Auth before calling Gemini.
+- Both the Vercel API route and Cloudflare Worker require a bearer access token and verify it with Supabase Auth before inference.
 - Supabase publishable keys are used in the browser; secret/service-role keys are not required by this implementation.
 - Local IndexedDB data is isolated by authenticated user ID within the browser.
 - Provider errors do not expose prompts, response bodies, or credentials.
 
 ## Important deployment warning
 
-The chat endpoint now requires an authenticated Supabase session. However, it still has no shared/distributed rate limiting, per-user server-side quotas, or durable abuse controls. Do not expose an unrestricted public deployment or add paid provider credentials until these controls are implemented and independently reviewed. Configure spending limits with the provider and keep preview deployments access-controlled.
+The chat endpoint now requires an authenticated Supabase session. However, it still has no shared/distributed rate limiting, per-user server-side quotas, or durable abuse controls. Do not expose an unrestricted public deployment until these controls are implemented and independently reviewed. Review Cloudflare Workers AI usage allowances and billing controls before enabling inference, and keep preview deployments access-controlled.
 
 ## Secret handling
 
