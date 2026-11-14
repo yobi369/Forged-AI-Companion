@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getGeminiResponse } from "../services/geminiService";
+import { getCloudflareAIResponse } from "../services/cloudflareAIService";
 import {
   conversationTitle,
   createConversation,
@@ -24,7 +24,6 @@ export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<StoredMessage[]>([welcomeMessage]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [useSearch, setUseSearch] = useState(false);
   const [error, setError] = useState("");
   const [isReady, setIsReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -164,7 +163,7 @@ export const ChatInterface: React.FC = () => {
 
     try {
       const context = nextMessages.slice(-16).map(({ role, content }) => ({ role, content }));
-      const result = await getGeminiResponse(context, useSearch);
+      const result = await getCloudflareAIResponse(context);
       const completed = [
         ...nextMessages,
         {
@@ -217,12 +216,8 @@ export const ChatInterface: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-2">
+      <div className="border-b border-white/5 px-4 py-2">
         <p className="truncate text-[10px] text-gray-500">{activeConversation?.title ?? "Loading workspace…"}</p>
-        <button type="button" onClick={() => setUseSearch((value) => !value)} aria-pressed={useSearch}
-          className={`shrink-0 rounded-lg px-2 py-1 text-[10px] transition-colors ${useSearch ? "bg-blue-500/15 text-blue-300" : "bg-white/5 text-gray-400 hover:text-white"}`}>
-          Web grounding {useSearch ? "on" : "off"}
-        </button>
       </div>
 
       <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto p-4" aria-live="polite">
