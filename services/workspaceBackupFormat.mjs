@@ -15,7 +15,7 @@ function boundedString(value, max, field) {
   if (typeof value !== "string" || !value.trim() || value.length > max) {
     throw new Error(`Backup contains an invalid ${field}.`);
   }
-  return value.trim();
+  return value;
 }
 
 function timestamp(value, field) {
@@ -42,8 +42,8 @@ function normalizeSources(value) {
 
 function normalizeConversation(value) {
   if (!isRecord(value)) throw new Error("Backup contains an invalid conversation.");
-  const id = boundedString(value.id, 128, "conversation ID");
-  const title = boundedString(value.title, 120, "conversation title");
+  const id = boundedString(value.id, 128, "conversation ID").trim();
+  const title = boundedString(value.title, 120, "conversation title").trim();
   if (!Array.isArray(value.messages) || value.messages.length > MAX_MESSAGES) {
     throw new Error("Backup contains an invalid conversation history.");
   }
@@ -73,10 +73,10 @@ function normalizeMemory(value) {
   if (!Array.isArray(value.tags) || value.tags.length > 8) {
     throw new Error("Backup contains invalid memory tags.");
   }
-  const tags = value.tags.map((tag) => boundedString(tag, 32, "memory tag").toLowerCase());
+  const tags = value.tags.map((tag) => boundedString(tag, 32, "memory tag").trim().toLowerCase());
   return {
-    id: boundedString(value.id, 128, "memory ID"),
-    title: boundedString(value.title, 100, "memory title"),
+    id: boundedString(value.id, 128, "memory ID").trim(),
+    title: boundedString(value.title, 100, "memory title").trim(),
     content: boundedString(value.content, 10_000, "memory content"),
     tags: [...new Set(tags)],
     source: typeof value.source === "string" ? value.source.slice(0, 100) : "Imported backup",
