@@ -77,12 +77,12 @@ export default {
     }
 
     const authorization = request.headers.get("authorization") || "";
-    const token = authorization.match(/^Bearer\\s+([A-Za-z0-9._~-]+)$/i)?.[1];
+    const token = authorization.match(/^Bearer\s+([A-Za-z0-9._~-]+)$/i)?.[1];
     if (!token) {
       return json({ error: "Sign in to use Forge AI.", code: "AUTH_REQUIRED" }, 401);
     }
 
-    const supabaseUrl = env.SUPABASE_URL?.replace(/\\/$/, "");
+    const supabaseUrl = env.SUPABASE_URL?.replace(/\/$/, "");
     const publishableKey = env.SUPABASE_PUBLISHABLE_KEY;
     if (!supabaseUrl || !publishableKey || !env.AI) {
       return json({ error: "Forge AI is not fully configured.", code: "AI_NOT_CONFIGURED" }, 503);
