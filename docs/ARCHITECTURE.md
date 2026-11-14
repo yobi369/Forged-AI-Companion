@@ -1,5 +1,11 @@
 # Architecture
 
+## Frontend delivery
+
+- Tailwind CSS is compiled through the Vite/PostCSS build pipeline and emitted as versioned production assets.
+- The application does not depend on the Tailwind browser CDN or an external import map at runtime.
+- Base typography, focus-visible styles, and global layout rules are shipped in the local stylesheet.
+
 ## Current request flow
 
 ```text
