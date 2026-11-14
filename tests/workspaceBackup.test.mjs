@@ -7,7 +7,7 @@ const sample = {
     id: "conversation-1",
     title: "Release planning",
     messages: [
-      { role: "user", content: "Plan a release", timestamp: 100 },
+      { role: "user", content: "  Plan a release  ", timestamp: 100 },
       { role: "assistant", content: "Start with a checklist.", timestamp: 101, sources: [{ uri: "https://example.com", title: "Example" }] },
     ],
     createdAt: 90,
@@ -16,7 +16,7 @@ const sample = {
   memories: [{
     id: "memory-1",
     title: "Project direction",
-    content: "Local-first developer workspace.",
+    content: "  Local-first developer workspace.  ",
     tags: ["product", "roadmap"],
     source: "Manually saved by you",
     createdAt: 80,
@@ -28,6 +28,8 @@ test("workspace backup round-trips conversations and memories", () => {
   const parsed = parseWorkspaceBackup(createWorkspaceBackup(sample));
   assert.equal(parsed.conversations[0].messages[1].sources[0].uri, "https://example.com/");
   assert.equal(parsed.memories[0].tags.length, 2);
+  assert.equal(parsed.conversations[0].messages[0].content, "  Plan a release  ");
+  assert.equal(parsed.memories[0].content, "  Local-first developer workspace.  ");
 });
 
 test("rejects malformed JSON and unsupported backup versions", () => {
