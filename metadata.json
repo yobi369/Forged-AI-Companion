@@ -1,9 +1,9 @@
 {
   "name": "Forge AI Companion",
-  "description": "A local-first AI workspace with server-side Gemini chat, user-managed browser memory, and portable conversation backups. Project indexing and local inference are planned.",
+  "description": "A local-first AI workspace with authenticated server-side Groq chat, user-managed browser memory, and portable conversation backups. Project indexing and local inference are planned.",
   "requestFramePermissions": [],
   "majorCapabilities": [
-    "Server-side Gemini chat",
+    "Authenticated server-side Groq chat",
     "Browser-local conversations",
     "User-managed searchable memory",
     "Versioned workspace backup and restore"
